@@ -38,3 +38,28 @@ spec:
               oQIDAQAB
               -----END PUBLIC KEY-----
 ---
+ apiVersion: apisix.apache.org/v2
+ kind: ApisixConsumer
+ metadata:
+   name: papi-00-consumer
+   namespace: services
+ spec:
+   authParameter:
+     jwtAuth:
+       value:
+         key: "orbital"                                   
+         exp: 86400 
+         base64_secret: false  
+         algorithm: RS256
+         secret: "papi-jwt"
+         public_key: |
+           -----BEGIN PUBLIC KEY-----
+           MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAzGAHPqvnB/Vj6bpU3mqs
+           t5WF/oqChPzD2FeWBYfrpmvNu7pVEL/b6AgmS/940WUTlwOkOAEF/2NuaPqiJkHt
+           Li0RDnh3K2PFQo47ba31KhRV+fioqXkGsmctSLCT5NICRZsv8NAAXB6YfsjJyNte
+           ENQL0dWf7FBjQUCBXEq7t4EgX9dHp4IgwNNIs2Twuc3/o2Zw5Y3gYfA32R9UkigC
+           BCk1LWDPcb71WDkY0vXG07VWOEEKs6BKUms2JtfpyBwh017lrGyW+pvfqpvLc3U5
+           8D2WjC+S3QxrRNo6uLmOxNTouNKkbHJXjTy7s9DvM2f6kDUhdTaqYLENLMBDjCZ4
+           oQIDAQAB
+           -----END PUBLIC KEY-----
+---

@@ -1,1 +1,40 @@
 
+---
+apiVersion: apisix.apache.org/v2
+kind: ApisixRoute
+metadata:
+  name: papi-0-route
+  namespace: services
+  labels:
+    app: papi
+    release: papi
+    heritage: Helm
+    orbitalinsight.com/values_repo_sha: "663bd1b"
+spec:
+  http:
+    - name: papi-0
+      match:
+        hosts:
+          - api-papi.staging.orbitalinsight.io
+        paths:
+          - "/*"
+      backends:
+      - serviceName: papi
+        servicePort: 5500
+      plugins:
+        - name: jwt-auth
+          enable: true
+          config:
+            key_claim_name: "cred_key"
+            secret: "papi-jwt"
+            public_key: |
+              -----BEGIN PUBLIC KEY-----
+              MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAzGAHPqvnB/Vj6bpU3mqs
+              t5WF/oqChPzD2FeWBYfrpmvNu7pVEL/b6AgmS/940WUTlwOkOAEF/2NuaPqiJkHt
+              Li0RDnh3K2PFQo47ba31KhRV+fioqXkGsmctSLCT5NICRZsv8NAAXB6YfsjJyNte
+              ENQL0dWf7FBjQUCBXEq7t4EgX9dHp4IgwNNIs2Twuc3/o2Zw5Y3gYfA32R9UkigC
+              BCk1LWDPcb71WDkY0vXG07VWOEEKs6BKUms2JtfpyBwh017lrGyW+pvfqpvLc3U5
+              8D2WjC+S3QxrRNo6uLmOxNTouNKkbHJXjTy7s9DvM2f6kDUhdTaqYLENLMBDjCZ4
+              oQIDAQAB
+              -----END PUBLIC KEY-----
+---

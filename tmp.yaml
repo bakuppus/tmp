@@ -15,7 +15,7 @@ spec:
     - name: papi-0
       match:
         hosts:
-          - api-papi.staging.orbitalinsight.io
+          - api-papi-00.staging.orbitalinsight.io
         paths:
           - "/*"
       backends:

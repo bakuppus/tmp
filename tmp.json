@@ -15,7 +15,7 @@ curl http://127.0.0.1:9180/apisix/admin/consumers -X PUT -H "X-API-KEY: edd1c9f0
 ---
 
 # Create a route with the JWT plugin enabled
-curl http://127.0.0.1:9180/apisix/admin/routes -X PUT  -H "X-API-KEY: edd1c9f034335f136f87ad84b625c8f1" -d '
+curl http://127.0.0.1:9180/apisix/admin/routes/pap-route-orbital -X PUT  -H "X-API-KEY: edd1c9f034335f136f87ad84b625c8f1" -d '
 {
     "uri": "/*",
     "hosts": [
@@ -33,4 +33,5 @@ curl http://127.0.0.1:9180/apisix/admin/routes -X PUT  -H "X-API-KEY: edd1c9f034
         }
     }
 }'
+
 

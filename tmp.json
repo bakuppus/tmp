@@ -1,0 +1,35 @@
+# Create a consumer
+curl http://127.0.0.1:9180/apisix/admin/consumers -X PUT -H "X-API-KEY: edd1c9f034335f136f87ad84b625c8f1" -d '
+{
+    "username": "consumer_orbital",
+    "plugins": {
+        "jwt-auth": {
+            "key": "orbital",
+            "algorithm": "RS256",
+            "public_key": "-----BEGIN PUBLIC KEY-----\nMIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAzGAHPqvnB/Vj6bpU3mqs\nt5WF/oqChPzD2FeWBYfrpmvNu7pVEL/b6AgmS/940WUTlwOkOAEF/2NuaPqiJkHt\nLi0RDnh3K2PFQo47ba31KhRV+fioqXkGsmctSLCT5NICRZsv8NAAXB6YfsjJyNte\nENQL0dWf7FBjQUCBXEq7t4EgX9dHp4IgwNNIs2Twuc3/o2Zw5Y3gYfA32R9UkigC\nBCk1LWDPcb71WDkY0vXG07VWOEEKs6BKUms2JtfpyBwh017lrGyW+pvfqpvLc3U5\n8D2WjC+S3QxrRNo6uLmOxNTouNKkbHJXjTy7s9DvM2f6kDUhdTaqYLENLMBDjCZ4\noQIDAQAB\n-----END PUBLIC KEY-----"
+        }
+    }
+}'
+
+---
+
+# Create a route with the JWT plugin enabled
+curl http://127.0.0.1:9180/apisix/admin/routes -X PUT  -H "X-API-KEY: edd1c9f034335f136f87ad84b625c8f1" -d '
+{
+    "uri": "/*",
+    "hosts": [
+      "api-papi-000.staging.orbitalinsight.io"
+    ],
+    "name": "pap-route-orbital",
+    "methods": ["GET", "POST", "PUT"],
+    "plugins": {
+        "jwt-auth": {}
+    },
+    "upstream": {
+        "type": "roundrobin",
+        "nodes": {
+            "papi.services.svc.cluster.local:5500": 1
+        }
+    }
+}'
+

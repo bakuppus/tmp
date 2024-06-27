@@ -31,3 +31,6 @@ spec:
 grpcurl -H "Authorization: Bearer $token" -H 'content-type: application/grpc' papi-gprc-00.staging.orbitalinsight.io
 
 grpcurl -H "Authorization: Bearer $token" -H 'content-type: application/grpc' papi-gprc-00.staging.orbitalinsight.io oi.papi.SystemApi.get_ping
+
+kubectl run -it -n ingress-apisix --rm grpcurl --restart=Never --image=fullstorydev/grpcurl:v1.8.7 --command -- \
+  /bin/grpcurl  papi-gprc-00.staging.orbitalinsight.io:443 oi.papi.SystemApi.get_ping

@@ -1,0 +1,31 @@
+apiVersion: apisix.apache.org/v2beta3
+kind: ApisixRoute
+metadata:
+  name: papi-gprc-00
+  namespace: services
+spec:
+  http:
+  - name: papi-grpc-rule
+    match:
+      hosts:
+      - papi-gprc-00.staging.orbitalinsight.io
+      paths:
+      - /
+    backends:
+    - serviceName: papi
+      servicePort: 5500
+    plugins:
+    - name: grpc-web
+      enable: true
+    - name: jwt-auth
+      enable: true
+      config:
+        header: authorization
+        query: jwt
+        cookie: jwt
+    - name: proxy-rewrite
+      enable: true
+      config:
+        scheme: grpc
+---
+grpcurl -H "Authorization: Bearer $token" -H 'content-type: application/grpc' papi-gprc-00.staging.orbitalinsight.io

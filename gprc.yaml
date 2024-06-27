@@ -29,3 +29,5 @@ spec:
         scheme: grpc
 ---
 grpcurl -H "Authorization: Bearer $token" -H 'content-type: application/grpc' papi-gprc-00.staging.orbitalinsight.io
+
+grpcurl -H "Authorization: Bearer $token" -H 'content-type: application/grpc' papi-gprc-00.staging.orbitalinsight.io oi.papi.SystemApi.get_ping

@@ -1,1 +1,29 @@
-dd
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  annotations:
+    alb.ingress.kubernetes.io/healthcheck-protocol: HTTP
+    alb.ingress.kubernetes.io/ssl-redirect: "443"
+    alb.ingress.kubernetes.io/backend-protocol-version: "GRPC"
+    alb.ingress.kubernetes.io/listen-ports: '[{"HTTP": 80}, {"HTTPS":443}]'
+    alb.ingress.kubernetes.io/scheme: internet-facing
+    alb.ingress.kubernetes.io/target-type: ip
+    alb.ingress.kubernetes.io/certificate-arn: arn:aws:acm:ap-southeast-2:381492165047:certificate/be2d7d69-5d0a-4584-b33b-a7244ec5be5f
+  labels:
+    app: papi
+  name: papi-grpc001
+  namespace: services
+spec:
+  ingressClassName: alb
+  rules:
+  - host: api-papi-grpc001.staging.orbitalinsight.io
+    http:
+      paths:
+      - backend:
+          service:
+            name: papi
+            port:
+              number: 5500
+        path: /
+        pathType: Prefix

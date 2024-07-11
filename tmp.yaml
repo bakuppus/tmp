@@ -27,3 +27,34 @@ spec:
               number: 5500
         path: /
         pathType: Prefix
+---
+apiVersion: v1
+kind: Service
+metadata:
+  annotations:
+    service.beta.kubernetes.io/aws-load-balancer-backend-protocol: "GRPC"
+    service.beta.kubernetes.io/aws-load-balancer-connection-idle-timeout: '60'
+    service.beta.kubernetes.io/aws-load-balancer-cross-zone-load-balancing-enabled: 'false'
+    service.beta.kubernetes.io/aws-load-balancer-type: nlb
+    service.beta.kubernetes.io/aws-load-balancer-internal: 'false'
+    service.beta.kubernetes.io/aws-load-balancer-ssl-cert: "arn:aws:acm:ap-southeast-2:381492165047:certificate/be2d7d69-5d0a-4584-b33b-a7244ec5be5f"
+    service.beta.kubernetes.io/aws-load-balancer-ssl-negotiation-policy: "ELBSecurityPolicy-TLS13-1-2-2021-06"
+    service.beta.kubernetes.io/aws-load-balancer-alpn-policy: HTTP2Preferred  
+  labels:
+    app: papi-nlb
+  name: papi-nlb
+  namespace: services
+spec:
+  type: LoadBalancer
+  externalTrafficPolicy: Local
+  ports:
+    - name: http
+      port: 80
+      protocol: TCP
+      targetPort: 5500
+    - name: https
+      port: 443
+      protocol: TCP
+      targetPort: 5500
+  selector:
+    app: papi

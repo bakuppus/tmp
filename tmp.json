@@ -1,3 +1,479 @@
+
+
+# Install APISIX Chart:
+
+helm install apisix apisix/apisix \
+  --set service.type=LoadBalancer \
+  --set ingress-controller.enabled=true \
+  --set ingress-controller.config.kubernetes.enableGatewayAPI=true\
+  --set dashboard.enabled=true \
+  --create-namespace \
+  --namespace ingress-apisix \
+  --set ingress-controller.config.apisix.serviceNamespace=ingress-apisix \
+  --set ingress-controller.config.apisix.adminAPIVersion=v3 \
+  --set apisix.ssl.enabled=true \
+  --set service.annotations."service\.beta\.kubernetes\.io/aws-load-balancer-type"=nlb \
+  --set service.annotations."service\.beta\.kubernetes\.io/aws-load-balancer-internal"=true
+
+
+# List all the pods (po) and services (svc) in the ingress-apisix namespace.
+kubectl get po,svc -n ingress-apisix
+NAME                                             READY   STATUS    RESTARTS       AGE
+pod/apisix-76fd88687b-5jvz8                      1/1     Running   0              107m
+pod/apisix-dashboard-6f5fd4b8b7-xffxx            1/1     Running   3 (107m ago)   107m
+pod/apisix-etcd-0                                1/1     Running   0              107m
+pod/apisix-etcd-1                                1/1     Running   0              107m
+pod/apisix-etcd-2                                1/1     Running   1 (107m ago)   107m
+pod/apisix-ingress-controller-5bcb697b99-7k2hv   1/1     Running   0              107m
+
+NAME                                               TYPE           CLUSTER-IP       EXTERNAL-IP                                                                     PORT(S)                      AGE
+service/apisix-admin                               ClusterIP      172.20.103.239   <none>                                                                          9180/TCP                     107m
+service/apisix-dashboard                           ClusterIP      172.20.69.41     <none>                                                                          80/TCP                       107m
+service/apisix-etcd                                ClusterIP      172.20.238.6     <none>                                                                          2379/TCP,2380/TCP            107m
+service/apisix-etcd-headless                       ClusterIP      None             <none>                                                                          2379/TCP,2380/TCP            107m
+service/apisix-gateway                             LoadBalancer   172.20.191.83    a547cb8b8b9ce41db8c2e10172e296e1-4c9504d1f00eca2d.elb.us-west-2.amazonaws.com   80:32428/TCP,443:31912/TCP   107m
+service/apisix-ingress-controller                  ClusterIP      172.20.76.238    <none>                                                                          80/TCP                       107m
+service/apisix-ingress-controller-apisix-gateway   NodePort       172.20.59.103    <none>                                                                          80:30431/TCP,443:31081/TCP   107m
+shubechhyakhadka@Shubechhyas-MacBook-Pro /tmp %
+
+
+
+
+# Create a consumer
+curl http://127.0.0.1:9180/apisix/admin/consumers -X PUT -H "X-API-KEY: edd1c9f034335f136f87ad84b625c8f1" -d '
+{
+    "username": "consumer_orbital",
+    "plugins": {
+        "jwt-auth": {
+            "key": "orbital",
+            "algorithm": "RS256",
+            "public_key": "-----BEGIN PUBLIC KEY-----\nMIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAzGAHPqvnB/Vj6bpU3mqs\nt5WF/oqChPzD2FeWBYfrpmvNu7pVEL/b6AgmS/940WUTlwOkOAEF/2NuaPqiJkHt\nLi0RDnh3K2PFQo47ba31KhRV+fioqXkGsmctSLCT5NICRZsv8NAAXB6YfsjJyNte\nENQL0dWf7FBjQUCBXEq7t4EgX9dHp4IgwNNIs2Twuc3/o2Zw5Y3gYfA32R9UkigC\nBCk1LWDPcb71WDkY0vXG07VWOEEKs6BKUms2JtfpyBwh017lrGyW+pvfqpvLc3U5\n8D2WjC+S3QxrRNo6uLmOxNTouNKkbHJXjTy7s9DvM2f6kDUhdTaqYLENLMBDjCZ4\noQIDAQAB\n-----END PUBLIC KEY-----",
+            "private_key": ""
+        }
+    }
+}'
+
+
+
+---
+
+# Create a route with the JWT plugin enabled
+curl http://127.0.0.1:9180/apisix/admin/routes -X PUT  -H "X-API-KEY: edd1c9f034335f136f87ad84b625c8f1" -d '
+{
+    "uri": "/*",
+    "hosts": [
+      "api-papi-000.staging.orbitalinsight.io"
+    ],
+    "name": "pap-route-orbital",
+    "methods": ["GET", "POST", "PUT"],
+    "plugins": {
+        "jwt-auth": {}
+    },
+    "upstream": {
+        "type": "roundrobin",
+        "nodes": {
+            "papi.services.svc.cluster.local:5500": 1
+        }
+    }
+}'
+
+
+
+# Added host api-papi-000.staging.orbitalinsight.io in route53 with values(a547cb8b8b9ce41db8c2e10172e296e1-4c9504d1f00eca2d.elb.us-west-2.amazonaws.com)
+
+shubechhyakhadka@Shubechhyas-MBP /tmp % kubectl get svc -n ingress-apisix
+NAME                                       TYPE           CLUSTER-IP       EXTERNAL-IP                                                                     PORT(S)                      AGE
+apisix-admin                               ClusterIP      172.20.103.239   <none>                                                                          9180/TCP                     25d
+apisix-dashboard                           ClusterIP      172.20.69.41     <none>                                                                          80/TCP                       25d
+apisix-etcd                                ClusterIP      172.20.238.6     <none>                                                                          2379/TCP,2380/TCP            25d
+apisix-etcd-headless                       ClusterIP      None             <none>                                                                          2379/TCP,2380/TCP            25d
+apisix-gateway                             LoadBalancer   172.20.191.83    a547cb8b8b9ce41db8c2e10172e296e1-4c9504d1f00eca2d.elb.us-west-2.amazonaws.com   80:32428/TCP,443:31912/TCP   25d
+apisix-ingress-controller                  ClusterIP      172.20.76.238    <none>                                                                          80/TCP                       25d
+apisix-ingress-controller-apisix-gateway   NodePort       172.20.59.103    <none>                                                                          80:30431/TCP,443:31081/TCP   25d
+
+
+# Validating without JWT
+shubechhyakhadka@Shubechhyas-MBP /tmp % curl api-papi-000.staging.orbitalinsight.io
+{"message":"Missing JWT token in request"}
+
+
+# Validating with JWT
+shubechhyakhadka@Shubechhyas-MBP /tmp % curl  -i http://api-papi-000.staging.orbitalinsight.io/  -H "Authorization: Bearer eyJhbGciOiJSUzI1NiJ9.eyJhdWQiOiJhcGkiLCJjcmVkX2tleSI6Im9yYml0YWwiLCJleHAiOjE3MjI4NjEwMDQsImlhdCI6MTcxOTI2MTAwNCwiaXNzIjoiaHR0cHM6Ly9rZXljbG9hay5vcmJpdGFsaW5zaWdodC5jb20vcmVhbG0vbWFzdGVyIiwia2V5Ijoib3JiaXRhbCIsIm9yZ19pZCI6ImZiYzViNmQzLTc5MmEtNGFiOS1hODMwLTBkMjBlZTkyYzFkZSIsInJlc291cmNlX2FjY2VzcyI6eyJhbGwiOnsicm9sZXMiOltdfX0sInN1YiI6Im9pX3NlcnZpY2UiLCJ1cG4iOiJvaV9zZXJ2aWNlIiwidXNlcl91dWlkIjoiM2RjOTkzNGYtMjUwMS00NjIxLTkyYjgtMWNjYzVmMjlmMDY4In0.pg9A2qZ_VROsoos17Gv5V4bQIZIz53ZK6y-igMu04gWmCyd3i9kT_JZ0dpbM1-Cci-OtyWyvH7-wkZIKMpMWZo49N4LDpQ9QZmKlMa6MPvfUUaPg5QVZPK6Z60-qt_5JFacZbw4rLGnYQAIFv4lXq5vArSB0dtTnLjKD3zzGVZ96SKp8LhKFlzgZaZOexiEfa2_XuVhuDN1vySqcEAaq1NJTrTuDb1PDuuVfiEZRfwxOpAoyV639Pr9NkVb49mFwnCiNJQc-M92mQqm1D_Eh2M9JOIQCMsdjnNmPIgIsUkGjPmXr-gPnfFU-KwftwYdsDvOpkARwNXI-rbsjLt3Qvw"
+curl: (1) Received HTTP/0.9 when not allowed
+
+
+
+shubechhyakhadka@Shubechhyas-MBP /tmp % kubectl describe ing -n services -l app=papi 
+Name:             apisix-papi-0
+Labels:           app=papi
+Namespace:        services
+Address:          
+Ingress Class:    apisix
+Default backend:  <default>
+Rules:
+  Host                                       Path  Backends
+  ----                                       ----  --------
+  apisix-api-papi.staging.orbitalinsight.io  
+                                             /   papi:5500 (10.104.29.139:5500,10.105.52.212:5500)
+Annotations:                                 konghq.com/plugins: jwt
+                                             nginx.ingress.kubernetes.io/backend-protocol: GRPC
+                                             nginx.ingress.kubernetes.io/server-snippet: grpc_buffer_size 1600k;
+Events:                                      <none>
+
+
+Name:             papi-0
+Labels:           app=papi
+                  app.kubernetes.io/managed-by=Helm
+                  chart=papi-1.1.635
+                  heritage=Helm
+                  orbitalinsight.com/values_repo_sha=663bd1b
+                  release=papi
+Namespace:        services
+Address:          ae873d853be604015ad7e358782c4431-d36ee0103ad9b4ad.elb.us-west-2.amazonaws.com
+Ingress Class:    kong
+Default backend:  <default>
+Rules:
+  Host                                Path  Backends
+  ----                                ----  --------
+  api-papi.staging.orbitalinsight.io  
+                                      /   papi:5500 (10.104.29.139:5500,10.105.52.212:5500)
+Annotations:                          external-dns.alpha.kubernetes.io/target: kong-proxy.staging.orbitalinsight.io
+                                      konghq.com/plugins: jwt
+                                      meta.helm.sh/release-name: papi
+                                      meta.helm.sh/release-namespace: services
+                                      nginx.ingress.kubernetes.io/backend-protocol: GRPC
+                                      nginx.ingress.kubernetes.io/server-snippet: grpc_buffer_size 1600k;
+                                      orbitalinsight/dns-manager: external-dns
+Events:                               <none>
+
+
+Name:             papi-1
+Labels:           app=papi
+                  app.kubernetes.io/managed-by=Helm
+                  chart=papi-1.1.635
+                  heritage=Helm
+                  orbitalinsight.com/values_repo_sha=663bd1b
+                  release=papi
+Namespace:        services
+Address:          ae873d853be604015ad7e358782c4431-d36ee0103ad9b4ad.elb.us-west-2.amazonaws.com
+Ingress Class:    kong
+Default backend:  <default>
+Rules:
+  Host                                Path  Backends
+  ----                                ----  --------
+  api-papi.staging.orbitalinsight.io  
+                                      /oi.papi.UserApi/login                                           papi:5500 (10.104.29.139:5500,10.105.52.212:5500)
+                                      /grpc.reflection.v1alpha.ServerReflection/ServerReflectionInfo   papi:5500 (10.104.29.139:5500,10.105.52.212:5500)
+                                      /oi.papi.ForgotPasswordApi/forgot_password                       papi:5500 (10.104.29.139:5500,10.105.52.212:5500)
+Annotations:                          external-dns.alpha.kubernetes.io/target: kong-proxy.staging.orbitalinsight.io
+                                      konghq.com/protocols: grpc,grpcs
+                                      meta.helm.sh/release-name: papi
+                                      meta.helm.sh/release-namespace: services
+                                      orbitalinsight/dns-manager: external-dns
+Events:                               <none>
+
+
+Name:             papi-2
+Labels:           app=papi
+                  app.kubernetes.io/managed-by=Helm
+                  chart=papi-1.1.635
+                  heritage=Helm
+                  orbitalinsight.com/values_repo_sha=663bd1b
+                  release=papi
+Namespace:        services
+Address:          ae873d853be604015ad7e358782c4431-d36ee0103ad9b4ad.elb.us-west-2.amazonaws.com
+Ingress Class:    kong
+Default backend:  <default>
+Rules:
+  Host                                     Path  Backends
+  ----                                     ----  --------
+  api-papi-http.staging.orbitalinsight.io  
+                                           /systemapi/   papi:5500 (10.104.29.139:5500,10.105.52.212:5500)
+Annotations:                               external-dns.alpha.kubernetes.io/target: kong-proxy.staging.orbitalinsight.io
+                                           konghq.com/plugins: grpc-gateway-system
+                                           konghq.com/protocols: http,https
+                                           meta.helm.sh/release-name: papi
+                                           meta.helm.sh/release-namespace: services
+                                           orbitalinsight/dns-manager: external-dns
+Events:                                    <none>
+
+
+Name:             papi-3
+Labels:           app=papi
+                  app.kubernetes.io/managed-by=Helm
+                  chart=papi-1.1.635
+                  heritage=Helm
+                  orbitalinsight.com/values_repo_sha=663bd1b
+                  release=papi
+Namespace:        services
+Address:          ae873d853be604015ad7e358782c4431-d36ee0103ad9b4ad.elb.us-west-2.amazonaws.com
+Ingress Class:    kong
+Default backend:  <default>
+Rules:
+  Host                                     Path  Backends
+  ----                                     ----  --------
+  api-papi-http.staging.orbitalinsight.io  
+                                           /result/   papi:5500 (10.104.29.139:5500,10.105.52.212:5500)
+Annotations:                               external-dns.alpha.kubernetes.io/target: kong-proxy.staging.orbitalinsight.io
+                                           konghq.com/plugins: grpc-gateway-result
+                                           konghq.com/protocols: http,https
+                                           meta.helm.sh/release-name: papi
+                                           meta.helm.sh/release-namespace: services
+                                           orbitalinsight/dns-manager: external-dns
+Events:                                    <none>
+shubechhyakhadka@Shubechhyas-MBP /tmp % 
+
+
+shubechhyakhadka@Shubechhyas-MBP /tmp % kubectl get ing -n services -l app=papi -o yaml
+apiVersion: v1
+items:
+- apiVersion: networking.k8s.io/v1
+  kind: Ingress
+  metadata:
+    annotations:
+      konghq.com/plugins: jwt
+      kubectl.kubernetes.io/last-applied-configuration: |
+        {"apiVersion":"networking.k8s.io/v1","kind":"Ingress","metadata":{"annotations":{"konghq.com/plugins":"jwt","nginx.ingress.kubernetes.io/backend-protocol":"GRPC","nginx.ingress.kubernetes.io/server-snippet":"grpc_buffer_size 1600k;"},"labels":{"app":"papi"},"name":"apisix-papi-0","namespace":"services"},"spec":{"ingressClassName":"apisix","rules":[{"host":"apisix-api-papi.staging.orbitalinsight.io","http":{"paths":[{"backend":{"service":{"name":"papi","port":{"number":5500}}},"path":"/","pathType":"Prefix"}]}}]}}
+      nginx.ingress.kubernetes.io/backend-protocol: GRPC
+      nginx.ingress.kubernetes.io/server-snippet: grpc_buffer_size 1600k;
+    creationTimestamp: "2024-05-30T14:03:06Z"
+    generation: 3
+    labels:
+      app: papi
+    name: apisix-papi-0
+    namespace: services
+    resourceVersion: "906461442"
+    uid: 6dfe22ea-e192-4b27-804f-e566a8aa68ff
+  spec:
+    ingressClassName: apisix
+    rules:
+    - host: apisix-api-papi.staging.orbitalinsight.io
+      http:
+        paths:
+        - backend:
+            service:
+              name: papi
+              port:
+                number: 5500
+          path: /
+          pathType: Prefix
+  status:
+    loadBalancer: {}
+- apiVersion: networking.k8s.io/v1
+  kind: Ingress
+  metadata:
+    annotations:
+      external-dns.alpha.kubernetes.io/target: kong-proxy.staging.orbitalinsight.io
+      konghq.com/plugins: jwt
+      meta.helm.sh/release-name: papi
+      meta.helm.sh/release-namespace: services
+      nginx.ingress.kubernetes.io/backend-protocol: GRPC
+      nginx.ingress.kubernetes.io/server-snippet: grpc_buffer_size 1600k;
+      orbitalinsight/dns-manager: external-dns
+    creationTimestamp: "2024-03-14T19:40:17Z"
+    generation: 1
+    labels:
+      app: papi
+      app.kubernetes.io/managed-by: Helm
+      chart: papi-1.1.635
+      heritage: Helm
+      orbitalinsight.com/values_repo_sha: 663bd1b
+      release: papi
+    name: papi-0
+    namespace: services
+    resourceVersion: "921751805"
+    uid: b0018c69-3522-4404-a14a-acccbb2793be
+  spec:
+    ingressClassName: kong
+    rules:
+    - host: api-papi.staging.orbitalinsight.io
+      http:
+        paths:
+        - backend:
+            service:
+              name: papi
+              port:
+                number: 5500
+          path: /
+          pathType: Prefix
+  status:
+    loadBalancer:
+      ingress:
+      - hostname: ae873d853be604015ad7e358782c4431-d36ee0103ad9b4ad.elb.us-west-2.amazonaws.com
+- apiVersion: networking.k8s.io/v1
+  kind: Ingress
+  metadata:
+    annotations:
+      external-dns.alpha.kubernetes.io/target: kong-proxy.staging.orbitalinsight.io
+      konghq.com/protocols: grpc,grpcs
+      meta.helm.sh/release-name: papi
+      meta.helm.sh/release-namespace: services
+      orbitalinsight/dns-manager: external-dns
+    creationTimestamp: "2024-03-14T19:40:17Z"
+    generation: 3
+    labels:
+      app: papi
+      app.kubernetes.io/managed-by: Helm
+      chart: papi-1.1.635
+      heritage: Helm
+      orbitalinsight.com/values_repo_sha: 663bd1b
+      release: papi
+    name: papi-1
+    namespace: services
+    resourceVersion: "921751807"
+    uid: 6ce79385-a2b2-4584-a1ab-ac551029317d
+  spec:
+    ingressClassName: kong
+    rules:
+    - host: api-papi.staging.orbitalinsight.io
+      http:
+        paths:
+        - backend:
+            service:
+              name: papi
+              port:
+                number: 5500
+          path: /oi.papi.UserApi/login
+          pathType: Prefix
+        - backend:
+            service:
+              name: papi
+              port:
+                number: 5500
+          path: /grpc.reflection.v1alpha.ServerReflection/ServerReflectionInfo
+          pathType: Prefix
+        - backend:
+            service:
+              name: papi
+              port:
+                number: 5500
+          path: /oi.papi.ForgotPasswordApi/forgot_password
+          pathType: Prefix
+  status:
+    loadBalancer:
+      ingress:
+      - hostname: ae873d853be604015ad7e358782c4431-d36ee0103ad9b4ad.elb.us-west-2.amazonaws.com
+- apiVersion: networking.k8s.io/v1
+  kind: Ingress
+  metadata:
+    annotations:
+      external-dns.alpha.kubernetes.io/target: kong-proxy.staging.orbitalinsight.io
+      konghq.com/plugins: grpc-gateway-system
+      konghq.com/protocols: http,https
+      meta.helm.sh/release-name: papi
+      meta.helm.sh/release-namespace: services
+      orbitalinsight/dns-manager: external-dns
+    creationTimestamp: "2024-03-14T19:40:17Z"
+    generation: 1
+    labels:
+      app: papi
+      app.kubernetes.io/managed-by: Helm
+      chart: papi-1.1.635
+      heritage: Helm
+      orbitalinsight.com/values_repo_sha: 663bd1b
+      release: papi
+    name: papi-2
+    namespace: services
+    resourceVersion: "921751809"
+    uid: 87b6f8d1-eada-4a75-a2fb-d7d35a9b27b3
+  spec:
+    ingressClassName: kong
+    rules:
+    - host: api-papi-http.staging.orbitalinsight.io
+      http:
+        paths:
+        - backend:
+            service:
+              name: papi
+              port:
+                number: 5500
+          path: /systemapi/
+          pathType: Prefix
+  status:
+    loadBalancer:
+      ingress:
+      - hostname: ae873d853be604015ad7e358782c4431-d36ee0103ad9b4ad.elb.us-west-2.amazonaws.com
+- apiVersion: networking.k8s.io/v1
+  kind: Ingress
+  metadata:
+    annotations:
+      external-dns.alpha.kubernetes.io/target: kong-proxy.staging.orbitalinsight.io
+      konghq.com/plugins: grpc-gateway-result
+      konghq.com/protocols: http,https
+      meta.helm.sh/release-name: papi
+      meta.helm.sh/release-namespace: services
+      orbitalinsight/dns-manager: external-dns
+    creationTimestamp: "2024-03-14T19:40:17Z"
+    generation: 1
+    labels:
+      app: papi
+      app.kubernetes.io/managed-by: Helm
+      chart: papi-1.1.635
+      heritage: Helm
+      orbitalinsight.com/values_repo_sha: 663bd1b
+      release: papi
+    name: papi-3
+    namespace: services
+    resourceVersion: "921751810"
+    uid: d58b83ad-3cb1-4852-88a9-366124a4a829
+  spec:
+    ingressClassName: kong
+    rules:
+    - host: api-papi-http.staging.orbitalinsight.io
+      http:
+        paths:
+        - backend:
+            service:
+              name: papi
+              port:
+                number: 5500
+          path: /result/
+          pathType: Prefix
+  status:
+    loadBalancer:
+      ingress:
+      - hostname: ae873d853be604015ad7e358782c4431-d36ee0103ad9b4ad.elb.us-west-2.amazonaws.com
+kind: List
+metadata:
+  resourceVersion: ""
+shubechhyakhadka@Shubechhyas-MBP /tmp % 
+
+
+e.g.
+grpcurl -H "Authorization: Bearer $tok" -H 'content-type: application/grpc' api-papi.staging.orbitalinsight.io:443 oi.papi.SystemApi.get_ping
+
+
+you can also exec into a papi or pretty much any service pod in staging, and run this python code:
+import sys
+import asyncio
+import os
+import terrascope_api
+
+tok = os.environ['tok']
+
+
+
+async def ping(papi_client):
+   response = await papi_client.api.system.get_ping(papi_client.models.system.PingRequest())
+   return response
+
+
+async def main():
+   oi_papi_async_client = terrascope_api.TerrascopeAsyncClient(f"api-papi.staging.orbitalinsight.io",443, secure=True, api_token=tok)
+   response = await ping(oi_papi_async_client)
+   print("Async Ping Response : ", response)
+
+
+if __name__ == '__main__':
+   asyncio.run(main())
+
+
+
+
+
+
+
+#############
 # Create a consumer
 curl http://127.0.0.1:9180/apisix/admin/consumers -X PUT -H "X-API-KEY: edd1c9f034335f136f87ad84b625c8f1" -d '
 {

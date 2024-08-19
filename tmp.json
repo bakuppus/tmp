@@ -1,3 +1,4 @@
+kubectl port-forward svc/apisix-admin -n ingress-apisix 9180:9180
 
 # Create a consumer
 curl http://127.0.0.1:9180/apisix/admin/consumers -X PUT -H "X-API-KEY: edd1c9f034335f136f87ad84b625c8f1" -d '
